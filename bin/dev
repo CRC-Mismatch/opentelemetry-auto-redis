@@ -1,0 +1,143 @@
+#!/bin/bash
+
+init() {
+    COMPOSE_EXECUTABLE="docker compose"
+    $COMPOSE_EXECUTABLE version &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        COMPOSE_EXECUTABLE="docker-compose"
+        $COMPOSE_EXECUTABLE --version &>/dev/null
+        if [[ $? -ne 0 ]]; then
+            echo "Neither Docker Compose (plugin) or Docker-Compose (standalone) found, exitting!"
+            exit 1
+        fi
+    fi
+    self=$(which $0)
+    self_path=$(dirname $(realpath $self))
+    project_path=$(dirname $self_path)
+    compose_file_custom="${project_path}/docker-compose.yml"
+    compose_file_dist="${project_path}/.docker/docker-compose.yml"
+    env_file="--env-file ${project_path}/.docker/.env"
+
+    if [ -f "${compose_file_custom}" ]; then
+        compose_file="-f $compose_file_dist -f $compose_file_custom "
+    else
+        compose_file="-f $compose_file_dist"
+    fi
+}
+
+start() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file up -d "$@"
+}
+
+up() {
+    start "$@"
+}
+
+stop() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file stop "$@"
+}
+
+status() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file ps
+}
+
+down() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file down "$@"
+}
+
+exec() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file exec "$@"
+}
+
+rebuild() {
+    update
+    start
+}
+
+reset() {
+    down --remove-orphans
+    set -e
+    rm -rf var/cache var/log/*.log vendor
+    build --no-cache
+    up --renew-anon-volumes
+    script=$(cat << END
+        composer install -n;
+END
+    )
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run --entrypoint /bin/bash --remove-orphans --rm php-cli -c "$script"
+}
+
+update() {
+    down --remove-orphans &
+    set -e
+    rm -rf var/cache &
+    docker pull evinobr/api-platform-php-cli:php-8.3-opentelemetry &
+    wait
+    build
+    up
+    script="
+        composer install -n; \
+    "
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run --entrypoint /bin/bash --remove-orphans --rm php-cli -c "$script"
+}
+
+restart() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file restart "$@"
+}
+
+build() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file build "$@"
+}
+
+console() {
+  echo "$@"
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run --rm --entrypoint "$SHELL" php-cli -li "$@"
+}
+
+console-debug() {
+    if [[ "${SHELL#*"/zsh"}" != "$SHELL" ]]; then
+        RCFILE="/etc/zsh/zlogin"
+    else
+        RCFILE="/home/app/.bash_profile"
+    fi
+    echo '[[ -n "$BASH_VERSION" && -f "$HOME/.bashrc" ]] && . "$HOME/.bashrc"; export XDEBUG_SESSION=1;' > /tmp/console-debug.sh
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run --rm -v"/tmp/console-debug.sh:$RCFILE" -ePHP_IDE_CONFIG="serverName=otel-redis.localhost" -eXDEBUG_MODE=debug --entrypoint "$SHELL" php-cli -li "$@"
+    rm /tmp/console-debug.sh
+}
+
+logs() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file logs "$@"
+}
+
+php() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run -t --rm php-cli "$@"
+}
+
+php-debug() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run -t --env=PHP_IDE_CONFIG="serverName=otel-redis.localhost" --rm php-cli php -dxdebug.mode=debug -dxdebug.start_with_request=yes "$@"
+}
+
+composer() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file run -t --rm php-cli composer "$@"
+}
+
+compose() {
+    ${COMPOSE_EXECUTABLE} $compose_file $env_file "$@"
+}
+
+init
+
+declare -a ARGS
+for var in "$@"; do
+    if [[ "$var" == "-D" || "$var" == "--debug" ]]; then
+        DEBUG=true
+        continue;
+    fi
+    ARGS[${#ARGS[@]}]="$var"
+done
+
+if [ -n "$DEBUG" ]; then
+  "${ARGS[0]}-debug" "${ARGS[@]:1}"
+else
+  "${ARGS[@]}"
+fi

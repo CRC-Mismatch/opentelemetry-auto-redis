@@ -1,0 +1,8 @@
+###> phpunit/phpunit ###
+/phpunit.xml
+.phpunit.result.cache
+###< phpunit/phpunit ###
+/vendor/
+composer.lock
+.php-cs-fixer.cache
+/var/

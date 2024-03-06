@@ -1,0 +1,50 @@
+version: '3.5'
+networks:
+  custom_network:
+    driver: bridge
+    name: ${COMPOSE_PROJECT_NAME}_network
+services:
+  php-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - USERID=${USERID}
+        - GROUPID=${GROUPID}
+        - USER_SHELL=${SHELL}
+        - THEME=${ZSH_THEME:-maran}
+    volumes:
+      - ../:/var/www/html
+      - ${SSH_AUTH_SOCK}:/ssh-agent
+      - ~/.config/composer/auth.json:/home/app/.composer/auth.json
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent
+      - PHP_MAX_EXECUTION_TIME=$PHP_CLI_MAX_EXECUTION_TIME
+      - PHP_MEMORY_LIMIT=$PHP_CLI_MEMORY_LIMIT
+      - PHP_POST_MAX_SIZE=$PHP_CLI_POST_MAX_SIZE
+      - PHP_UPLOAD_MAX_FILESIZE=$PHP_CLI_UPLOAD_MAX_FILESIZE
+      - PHP_IDE_CONFIG
+      - REDIS_HOSTNAME
+      - REDIS_PORT
+      - TERM=$TERM
+      - XDEBUG_MODE
+      - COMPOSE_PROJECT_NAME
+      - OTEL_LOG_LEVEL=debug
+      - OTEL_PHP_LOG_DESTINATION=stderr
+      - OTEL_SERVICE_NAME=concord-console (development)
+      - OTEL_PHP_AUTOLOAD_ENABLED
+      - OTEL_EXPORTER_OTLP_PROTOCOL
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+#      - OTEL_EXPORTER_OTLP_HEADERS
+    networks:
+      - custom_network
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    command: ['redis-server', '/etc/redis/redis.conf']
+    volumes:
+      - ./config/redis/redis.conf:/etc/redis/redis.conf
+    networks:
+      - custom_network
