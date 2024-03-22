@@ -9,12 +9,12 @@
     "minimum-stability": "dev",
     "require": {
         "php": "^8.2",
-        "ext-redis": "*",
         "ext-opentelemetry": "*",
         "open-telemetry/api": "^1.0",
         "open-telemetry/sem-conv": "^1.23"
     },
     "require-dev": {
+        "ext-redis": "*",
         "friendsofphp/php-cs-fixer": "^3",
         "phan/phan": "^5.0",
         "php-http/mock-client": "*",
