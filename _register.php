@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use OpenTelemetry\Contrib\Instrumentation\Redis\CredisInstrumentation;
 use OpenTelemetry\Contrib\Instrumentation\Redis\PredisInstrumentation;
 use OpenTelemetry\Contrib\Instrumentation\Redis\RedisInstrumentation;
 use OpenTelemetry\SDK\Sdk;
@@ -25,4 +26,8 @@ if (extension_loaded('redis')) {
 
 if (class_exists(\Predis\Client::class)) {
     PredisInstrumentation::register();
+}
+
+if (class_exists(\Credis_Client::class)) {
+    CredisInstrumentation::register();
 }

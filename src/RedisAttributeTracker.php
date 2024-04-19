@@ -10,36 +10,42 @@ declare(strict_types=1);
 
 namespace OpenTelemetry\Contrib\Instrumentation\Redis;
 
+use Credis_Client;
 use OpenTelemetry\SemConv\TraceAttributes;
 use OpenTelemetry\SemConv\TraceAttributeValues;
+use Predis\Client;
 use Predis\Connection\NodeConnectionInterface;
 use Predis\Connection\ParametersInterface;
+use Redis;
+use Throwable;
+use WeakMap;
 
 class RedisAttributeTracker
 {
     /**
-     * @var \WeakMap<\Redis|\Predis\Client, iterable<non-empty-string, bool|int|float|string|array|null>>
+     * @var WeakMap<Redis|Client|Credis_Client, iterable<non-empty-string, bool|int|float|string|array|null>>
      */
-    private \WeakMap $redisToAttributesMap;
+    private WeakMap $redisToAttributesMap;
 
     public function __construct()
     {
         /** @psalm-suppress PropertyTypeCoercion */
-        $this->redisToAttributesMap = new \WeakMap();
+        $this->redisToAttributesMap = new WeakMap();
     }
 
     /**
-     * @param \Redis|\Predis\Client $redis
+     * @param Redis|Client|Credis_Client $redis
      *
      * @return iterable<non-empty-string, bool|int|float|string|array|null>
      */
-    public function trackRedisAttributes(\Redis|\Predis\Client $redis): iterable
+    public function trackRedisAttributes(Redis|Client|Credis_Client $redis): iterable
     {
         /** @var array<non-empty-string, bool|int|float|string|array|null> $attributes */
-        $attributes = [TraceAttributes::DB_SYSTEM => TraceAttributeValues::DB_SYSTEM_REDIS];
+        $attributes = $this->redisToAttributesMap[$redis]
+            ?? [TraceAttributes::DB_SYSTEM => TraceAttributeValues::DB_SYSTEM_REDIS];
 
         try {
-            if ($redis instanceof \Redis) {
+            if ($redis instanceof Redis) {
                 if (!$host = $redis->getHost()) {
                     return $attributes;
                 }
@@ -56,7 +62,7 @@ class RedisAttributeTracker
                     $attributes[TraceAttributes::DB_USER] = $auth[0];
                 }
             }
-            if ($redis instanceof \Predis\Client) {
+            if ($redis instanceof Client) {
                 $connection = $redis->getConnection();
                 if ($connection instanceof NodeConnectionInterface) {
                     /** @var \stdClass|array|ParametersInterface $parameters */
@@ -87,7 +93,17 @@ class RedisAttributeTracker
                     }
                 }
             }
-        } catch (\Throwable $e) {
+            if ($redis instanceof Credis_Client) {
+                $attributes[TraceAttributes::SERVER_ADDRESS] = $host = $redis->getHost();
+                if (str_contains($host, '/') || str_starts_with($host, 'unix:')) {
+                    $attributes[TraceAttributes::NETWORK_TRANSPORT] = 'unix';
+                } else {
+                    $attributes[TraceAttributes::NETWORK_TRANSPORT] = 'tcp';
+                    $attributes[TraceAttributes::SERVER_PORT] = $redis->getPort();
+                }
+                $attributes[TraceAttributes::DB_REDIS_DATABASE_INDEX] = $redis->getSelectedDb();
+            }
+        } catch (Throwable $e) {
             // if we catched an exception, the driver is likely not supporting the operation, default to "other"
             $attributes[TraceAttributes::DB_SYSTEM] = 'other_sql';
         }
@@ -95,7 +111,27 @@ class RedisAttributeTracker
         return $this->redisToAttributesMap[$redis] = $attributes;
     }
 
-    public function trackedAttributesForRedis(\Redis|\Predis\Client $redis)
+    public function trackRedisAuth(Redis|Client|Credis_Client $redis, string $username): array
+    {
+        $attributes = $this->redisToAttributesMap[$redis] ?? null;
+        if ($attributes === null) {
+            return [];
+        }
+        $attributes[TraceAttributes::DB_USER] = $username;
+        return $this->redisToAttributesMap[$redis] = $attributes;
+    }
+
+    public function trackRedisDbIdx(Redis|Client|Credis_Client $redis, int $dbIndex): array
+    {
+        $attributes = $this->redisToAttributesMap[$redis] ?? null;
+        if ($attributes === null) {
+            return [];
+        }
+        $attributes[TraceAttributes::DB_REDIS_DATABASE_INDEX] = $dbIndex;
+        return $this->redisToAttributesMap[$redis] = $attributes;
+    }
+
+    public function trackedAttributesForRedis(Redis|Client|Credis_Client $redis)
     {
         return $this->redisToAttributesMap[$redis] ?? [];
     }
