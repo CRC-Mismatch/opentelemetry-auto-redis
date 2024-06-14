@@ -321,7 +321,7 @@ class RedisInstrumentation
                     $statement = 'SET ' . $params[0] . ' ?';
                     if (isset($params[2])) {
                         foreach ($params[2] as $key => $value) {
-                            $statement .= ' ' . strtoupper($key) . ' ' . $value;
+                            $statement .= ' ' . strtoupper((string) $key) . ' ' . $value;
                         }
                     }
                     $builder->setAttribute(
