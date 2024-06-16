@@ -14,7 +14,7 @@ install and configure the extension and SDK.
 
 ## Overview
 Auto-instrumentation hooks are registered via composer, and spans will automatically be created for
-selected `Redis` and `Predis\Client` methods.
+selected `Redis` (via extension) and `Predis\Client` methods, along with `Credis`.
 
 ## Configuration
 
