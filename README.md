@@ -1,13 +1,13 @@
 [![Releases](https://img.shields.io/badge/releases-purple)](https://github.com/CRC-Mismatch/opentelemetry-auto-redis/releases)
-[![Issues](https://img.shields.io/badge/issues-pink)](https://github.com/open-telemetry/opentelemetry-php/issues)
+[![Issues](https://img.shields.io/badge/issues-pink)](https://github.com/CRC-Mismatch/opentelemetry-auto-redis/issues)
 [![Source](https://img.shields.io/badge/source-contrib-green)](https://github.com/CRC-Mismatch/opentelemetry-php-contrib/tree/main/src/Instrumentation/Redis)
-[![Mirror](https://img.shields.io/badge/mirror-opentelemetry--php--contrib-blue)](https://github.com/CRC-Mismatch/contrib-auto-redis)
 [![Latest Version](http://poser.pugx.org/open-telemetry/opentelemetry-auto-pdo/v/unstable)](https://packagist.org/packages/mismatch/opentelemetry-auto-redis/)
 [![Stable](http://poser.pugx.org/open-telemetry/opentelemetry-auto-pdo/v/stable)](https://packagist.org/packages/mismatch/opentelemetry-auto-redis/)
+<!--[![Mirror](https://img.shields.io/badge/mirror-opentelemetry--php--contrib-blue)](https://github.com/CRC-Mismatch/contrib-auto-redis)-->
 
-This is a read-only subtree split of https://github.com/open-telemetry/opentelemetry-php-contrib.
+<!--This is a read-only subtree split of https://github.com/open-telemetry/opentelemetry-php-contrib.-->
 
-# OpenTelemetry Redis (PHP-Redis and Predis) auto-instrumentation
+# OpenTelemetry Redis (PHP-Redis, Credis and Predis) auto-instrumentation
 
 Please read https://opentelemetry.io/docs/instrumentation/php/automatic/ for instructions on how to
 install and configure the extension and SDK.
