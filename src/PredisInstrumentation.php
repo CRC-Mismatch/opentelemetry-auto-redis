@@ -59,7 +59,7 @@ class PredisInstrumentation
                 } elseif ($host instanceof \Predis\Connection\ConnectionInterface) {
                     $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
 
-                } elseif (array_is_list($host)) {
+                } elseif (is_array($host) && array_is_list($host)) {
                     $host = $host[0];
                 }
 
@@ -67,12 +67,14 @@ class PredisInstrumentation
                 if (is_string($host)) {
                     $parsedHostName = parse_url($host);
                     $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
-                    if (!empty($parsedHostName)) {
-                        $host = [
-                            'host' => $parsedHostName['host'] ?? 'unknown',
-                            'port' => $parsedHostName['port'] ?? 0,
-                            'scheme' => $parsedHostName['scheme'] ?? 'tcp',
-                        ];
+                    if (!empty($parsedHostName['host'])) {
+                        $host['host'] = $parsedHostName['host'];
+                    }
+                    if (!empty($parsedHostName['port'])) {
+                        $host['port'] = $parsedHostName['port'];
+                    }
+                    if (!empty($parsedHostName['scheme'])) {
+                        $host['scheme'] = $parsedHostName['scheme'];
                     }
                 }
                 if ($class === \Predis\Client::class) {
