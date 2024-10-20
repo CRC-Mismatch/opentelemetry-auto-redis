@@ -1,5 +1,5 @@
 {
-    "name": "mismatch/opentelemetry-auto-redis",
+    "name": "grzegorzdrozd/opentelemetry-auto-redis",
     "description": "OpenTelemetry Auto-Instrumentation for PHP-Redis and Predis",
     "keywords": ["opentelemetry", "otel", "open-telemetry", "tracing", "pdo", "instrumentation"],
     "type": "library",
