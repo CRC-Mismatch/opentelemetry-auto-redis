@@ -16,6 +16,7 @@ use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\Context\Context;
+use Predis\Connection\Parameters;
 use function OpenTelemetry\Instrumentation\hook;
 use OpenTelemetry\SemConv\TraceAttributes;
 use Predis\Command\CommandInterface;
@@ -65,7 +66,7 @@ class PredisInstrumentation
 
                 // if there is only uri provided like \Predis\Connection(['tcp://localhost:6379'])
                 if (is_string($host)) {
-                    $parsedHostName = parse_url($host);
+                    $parsedHostName = Parameters::parse($host);
                     $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
                     if (!empty($parsedHostName['host'])) {
                         $host['host'] = $parsedHostName['host'];
