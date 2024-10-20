@@ -52,8 +52,28 @@ class PredisInstrumentation
                 )
                     ->setSpanKind(SpanKind::KIND_CLIENT);
                 $host = $params[0];
-                if (array_is_list($host)) {
+                // if a connection is created from existing connection, like in symfony cache adapter
+                if ($host instanceof \Predis\Connection\NodeConnectionInterface) {
+                    $host = $host->getParameters()->toArray();
+                    // if connection is created from existing, but we don't know where we are connected to
+                } elseif ($host instanceof \Predis\Connection\ConnectionInterface) {
+                    $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
+
+                } elseif (array_is_list($host)) {
                     $host = $host[0];
+                }
+
+                // if there is only uri provided like \Predis\Connection(['tcp://localhost:6379'])
+                if (is_string($host)) {
+                    $parsedHostName = parse_url($host);
+                    $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
+                    if (!empty($parsedHostName)) {
+                        $host = [
+                            'host' => $parsedHostName['host'] ?? 'unknown',
+                            'port' => $parsedHostName['port'] ?? 0,
+                            'scheme' => $parsedHostName['scheme'] ?? 'tcp',
+                        ];
+                    }
                 }
                 if ($class === \Predis\Client::class) {
                     $builder->setAttribute(TraceAttributes::SERVER_ADDRESS, $host['host'] ?? $host['path'] ?? 'unknown')
