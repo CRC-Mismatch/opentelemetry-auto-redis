@@ -84,7 +84,13 @@ class PredisInstrumentation
                     if (array_key_exists('port', $host)) {
                         $builder->setAttribute(TraceAttributes::SERVER_PORT, $host['port'] ?? 'unknown');
                     }
-                    $auth = $host['parameters']['username'] ?? $params[1]['parameters']['username'] ?? null;
+                    if (!empty($host['parameters']['username'])) {
+                        $auth = $host['parameters']['username'];
+                    } elseif (is_array($params[1]) && !empty($params[1]['parameters']['username'])) {
+                        $auth = $params[1]['parameters']['username'];
+                    } elseif (!empty($params[1]) && $params[1] instanceof \Predis\Connection\Options) {
+                        $auth = 'unknown';
+                    }
                     if (!empty($auth)) {
                         $builder->setAttribute(TraceAttributes::DB_USER, $auth[0]);
                     }
