@@ -86,7 +86,7 @@ class PredisInstrumentation
                     }
                     if (!empty($host['parameters']['username'])) {
                         $auth = $host['parameters']['username'];
-                    } elseif (is_array($params[1]) && !empty($params[1]['parameters']['username'])) {
+                    } elseif (!empty($params[1]) && is_array($params[1]) && !empty($params[1]['parameters']['username'])) {
                         $auth = $params[1]['parameters']['username'];
                     }
                     if (!empty($auth)) {
