@@ -16,6 +16,7 @@ use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\Context\Context;
+use Predis\Connection\Parameters;
 use function OpenTelemetry\Instrumentation\hook;
 use OpenTelemetry\SemConv\TraceAttributes;
 use Predis\Command\CommandInterface;
@@ -59,20 +60,22 @@ class PredisInstrumentation
                 } elseif ($host instanceof \Predis\Connection\ConnectionInterface) {
                     $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
 
-                } elseif (array_is_list($host)) {
+                } elseif (is_array($host) && array_is_list($host)) {
                     $host = $host[0];
                 }
 
                 // if there is only uri provided like \Predis\Connection(['tcp://localhost:6379'])
                 if (is_string($host)) {
-                    $parsedHostName = parse_url($host);
+                    $parsedHostName = Parameters::parse($host);
                     $host = ['host'=>'unknown', 'port'=>0, 'scheme'=>'tcp'];
-                    if (!empty($parsedHostName)) {
-                        $host = [
-                            'host' => $parsedHostName['host'] ?? 'unknown',
-                            'port' => $parsedHostName['port'] ?? 0,
-                            'scheme' => $parsedHostName['scheme'] ?? 'tcp',
-                        ];
+                    if (!empty($parsedHostName['host'])) {
+                        $host['host'] = $parsedHostName['host'];
+                    }
+                    if (!empty($parsedHostName['port'])) {
+                        $host['port'] = $parsedHostName['port'];
+                    }
+                    if (!empty($parsedHostName['scheme'])) {
+                        $host['scheme'] = $parsedHostName['scheme'];
                     }
                 }
                 if ($class === \Predis\Client::class) {
@@ -81,7 +84,11 @@ class PredisInstrumentation
                     if (array_key_exists('port', $host)) {
                         $builder->setAttribute(TraceAttributes::SERVER_PORT, $host['port'] ?? 'unknown');
                     }
-                    $auth = $host['parameters']['username'] ?? $params[1]['parameters']['username'] ?? null;
+                    if (!empty($host['parameters']['username'])) {
+                        $auth = $host['parameters']['username'];
+                    } elseif (is_array($params[1]) && !empty($params[1]['parameters']['username'])) {
+                        $auth = $params[1]['parameters']['username'];
+                    }
                     if (!empty($auth)) {
                         $builder->setAttribute(TraceAttributes::DB_USER, $auth[0]);
                     }

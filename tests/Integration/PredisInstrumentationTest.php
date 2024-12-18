@@ -129,4 +129,57 @@ class PredisInstrumentationTest extends TestCase
         $this->assertEquals('redis', $span->getAttributes()->get(TraceAttributes::DB_SYSTEM));
         $this->assertSame('SREM test-sadd ?', $span->getAttributes()->get(TraceAttributes::DB_STATEMENT));
     }
+
+
+    /**
+     * @dataProvider different_constructor_args_data_provider
+     * @param $args
+     * @return void
+     */
+    public function test_different_constructor_args($args): void
+    {
+        $this->assertCount(0, $this->storage);
+        $redis = new \Predis\Client(...$args);
+        $this->assertCount(1, $this->storage);
+
+        $span = $this->storage->offsetGet(0);
+        $this->assertSame('Predis::__construct', $span->getName());
+        $this->assertEquals('redis', $span->getAttributes()->get(TraceAttributes::DB_SYSTEM));
+        $this->assertEquals('tcp', $span->getAttributes()->get(TraceAttributes::NETWORK_TRANSPORT));
+    }
+
+    public function different_constructor_args_data_provider()
+    {
+        yield 'string' => [
+            [
+                // predis client constructor arg 1
+                'tcp://redis:6379',
+                // predis client constructor arg 2
+                ['parameters'=>['username'=> 'test','password'=>'passwd']]
+            ]
+        ];
+
+        yield 'array' =>[
+            [
+                // predis client constructor arg 1
+                [
+                    'tcp://redis:6379',
+                    'tcp://redis:6379',
+                ],
+                // predis client constructor arg 2
+                ['parameters'=>['username'=> 'test','password'=>'passwd'], 'cluster' => 'predis']
+            ]
+        ];
+
+        $existingConnection = $this->createClient()->getConnection();
+        yield 'existing connection' =>
+        [
+            [
+                // predis client constructor arg 1
+                $existingConnection,
+                // predis client constructor arg 1
+                ['parameters'=>['username'=> 'test','password'=>'passwd']]
+            ]
+        ];
+    }
 }
