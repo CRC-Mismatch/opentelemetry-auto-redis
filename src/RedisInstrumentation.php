@@ -320,6 +320,11 @@ class RedisInstrumentation
                 if ($class === \Redis::class) {
                     $statement = 'SET ' . $params[0] . ' ?';
                     if (isset($params[2])) {
+                        // @see: https://github.com/phpredis/phpredis?tab=readme-ov-file#parameters-23
+                        if (is_int($params[2])) {
+                            $params[2] = ['EX' => $params[2]];
+                        }
+
                         foreach ($params[2] as $key => $value) {
                             $statement .= ' ' . strtoupper((string) $key) . ' ' . $value;
                         }
